@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Tracking</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        input {
+            width: 80%;
+            border: none;
+        }
+        button {
+            background-color: red;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            opacity: 0.8;
+        }
+        #map {
+            width: 100%;
+            height: 400px;
+            margin-top: 20px;
+            border: 2px solid red;
+            border-radius: 5px;
+        }
+        #receivedBtn {
+            display: none;
+            margin-top: 10px;
+            background-color: green;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <input type="text" id="referenceId" placeholder="Enter Reference ID">
+        <button onclick="startTracking()">Track Delivery</button>
+        <div id="map"></div>
+        <button id="receivedBtn" onclick="redirectToCapture()">Received</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        let map, userMarker, deliveryMarker;
+        let userLat, userLon, deliveryLat, deliveryLon;
+        let activeDeliveries = {};
+        let step = 0.2 ;
+        let receivedBtn = document.getElementById("receivedBtn");
+
+        function startTracking() {
+            let referenceId = document.getElementById("referenceId").value.trim();
+            if (!referenceId) {
+                alert("Please enter a Reference ID!");
+                return;
+            }
+
+            if (!map) {
+                map = L.map('map').setView([0, 0], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+            }
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function (position) {
+                        userLat = position.coords.latitude;
+                        userLon = position.coords.longitude;
+
+                        if (!userMarker) {
+                            userMarker = L.marker([userLat, userLon], { icon: createIcon("blue") }).addTo(map)
+                                .bindPopup("Your Location")
+                                .openPopup();
+                            map.setView([userLat, userLon], 14);
+                        }
+
+                        if (!activeDeliveries[referenceId]) {
+                            activeDeliveries[referenceId] = getRandomStartLocation(userLat, userLon);
+                        }
+
+                        [deliveryLat, deliveryLon] = activeDeliveries[referenceId];
+
+                        if (deliveryMarker) {
+                            map.removeLayer(deliveryMarker);
+                        }
+                        deliveryMarker = L.marker([deliveryLat, deliveryLon], { icon: createIcon("red") }).addTo(map)
+                            .bindPopup(`Delivery for Reference ID: ${referenceId}`)
+                            .openPopup();
+
+                        moveDelivery();
+                    },
+                    function (error) {
+                        alert("Error getting location: " + error.message);
+                    }
+                );
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        function moveDelivery() {
+            let interval = setInterval(() => {
+                let distance = getDistance(deliveryLat, deliveryLon, userLat, userLon);
+
+                if (distance < 0.01) {
+                    clearInterval(interval);
+                    deliveryMarker.bindPopup("Delivery Arrived!").openPopup();
+                    receivedBtn.style.display = "block";
+                    return;
+                }
+
+                deliveryLat -= (deliveryLat - userLat) * step;
+                deliveryLon -= (deliveryLon - userLon) * step;
+
+                deliveryMarker.setLatLng([deliveryLat, deliveryLon]);
+            }, 1000);
+        }
+
+        function redirectToCapture() {
+            window.location.href = "capture.html";
+        }
+
+        function getRandomStartLocation(lat, lon) {
+            let randomOffsetLat = (Math.random() * 0.02) + 0.01;
+            let randomOffsetLon = (Math.random() * 0.02) + 0.01;
+            return [lat + randomOffsetLat, lon + randomOffsetLon];
+        }
+
+        function getDistance(lat1, lon1, lat2, lon2) {
+            let R = 6371;
+            let dLat = (lat2 - lat1) * (Math.PI / 180);
+            let dLon = (lon2 - lon1) * (Math.PI / 180);
+            let a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        function createIcon(color) {
+            return L.icon({
+                iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
+                shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
+        }
+    </script>
+
+</body>
+</html>

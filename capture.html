@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Capture with Cropping</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        input {
+            width: 80%;
+            border: none;
+        }
+        button {
+            background-color: red;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            opacity: 0.8;
+        }
+        #map {
+            width: 100%;
+            height: 400px;
+            margin-top: 20px;
+            border: 2px solid red;
+            border-radius: 5px;
+        }
+        #receivedBtn {
+            display: none;
+            margin-top: 10px;
+            background-color: green;
+        }
+        #video-container, #crop-container, #saved-container {
+            margin-top: 20px;
+        }
+        #camera {
+            width: 100%;
+            border: 2px solid red;
+            border-radius: 5px;
+        }
+        #capturedImage, #savedImage {
+            max-width: 100%;
+            display: none;
+            border: 2px solid red;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        #crop-container {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Capture, Crop, and View Image</h2>
+
+        <!-- Camera Stream -->
+        <div id="video-container">
+            <video id="camera" autoplay></video>
+        </div>
+        <canvas id="canvas" style="display:none;"></canvas>
+        <button onclick="captureImage()">Capture</button>
+
+        <!-- Cropping Container -->
+        <div id="crop-container">
+            <img id="capturedImage">
+            <button onclick="cropImage()">Crop</button>
+            <button onclick="saveImage()">Save</button>
+        </div>
+
+        <!-- View Saved Image -->
+        <div id="saved-container">
+            <h3>Saved Image</h3>
+            <img id="savedImage">
+            <button onclick="viewSavedImage()">View Saved Image</button>
+        </div>
+    </div>
+
+    <script>
+        let video = document.getElementById("camera");
+        let canvas = document.getElementById("canvas");
+        let ctx = canvas.getContext("2d");
+        let cropper;
+        let capturedImage = document.getElementById("capturedImage");
+        let cropContainer = document.getElementById("crop-container");
+        let savedImage = document.getElementById("savedImage");
+
+        // Start video stream
+        navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+            video.srcObject = stream;
+        });
+
+        function captureImage() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            
+            // Convert canvas to image
+            let imageData = canvas.toDataURL("image/png");
+            capturedImage.src = imageData;
+            capturedImage.style.display = "block";
+            cropContainer.style.display = "block";
+
+            // Initialize Cropper.js
+            if (cropper) cropper.destroy(); // Destroy previous instance if exists
+            cropper = new Cropper(capturedImage, {
+                aspectRatio: 1, // You can change the aspect ratio
+                viewMode: 1,
+                movable: true,
+                zoomable: true,
+                scalable: true,
+                cropBoxResizable: true
+            });
+        }
+
+        function cropImage() {
+            let croppedCanvas = cropper.getCroppedCanvas();
+            capturedImage.src = croppedCanvas.toDataURL("image/png");
+        }
+
+        function saveImage() {
+            let croppedCanvas = cropper.getCroppedCanvas();
+            let croppedImageData = croppedCanvas.toDataURL("image/png");
+            localStorage.setItem("deliveryImage", croppedImageData);
+            alert("Cropped Image saved!");
+        }
+
+        function viewSavedImage() {
+            let storedImage = localStorage.getItem("deliveryImage");
+            if (storedImage) {
+                savedImage.src = storedImage;
+                savedImage.style.display = "block";
+            } else {
+                alert("No image saved!");
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signup</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        input {
+            width: 20%;
+            border: none;
+        }
+        button {
+            background-color: red;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            opacity: 0.8;
+        }
+        #map {
+            width: 100%;
+            height: 400px;
+            margin-top: 20px;
+            border: 2px solid red;
+            border-radius: 5px;
+        }
+        #receivedBtn {
+            display: none;
+            margin-top: 10px;
+            background-color: green;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Signup</h2>
+        <input type="text" id="signup-username" placeholder="Username" required>
+        <input type="password" id="signup-password" placeholder="Password" required>
+        <button onclick="signup()">Signup</button>
+        <p>Already have an account? <a href="login.html">Login</a></p>
+    </div>
+
+    <script>
+        async function signup() {
+            const username = document.getElementById("signup-username").value;
+            const password = document.getElementById("signup-password").value;
+
+            const response = await fetch("http://localhost:5000/signup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                window.location.href = "home.html"; // Redirect if user exists or signup successful
+            } else {
+                alert(data.message);
+            }
+        }
+    </script>
+</body>
+</html>
